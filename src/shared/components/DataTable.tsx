@@ -31,7 +31,7 @@ interface DataTableProps<T> {
   actions?: (row: T) => ReactNode
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+export function DataTable<T extends object>({
   columns,
   data,
   loading,
@@ -114,7 +114,9 @@ export function DataTable<T extends Record<string, unknown>>({
             <TableRow key={rowIndex} hover>
               {columns.map((col) => (
                 <TableCell key={col.id}>
-                  {col.render ? col.render(row) : String(row[col.id] ?? '')}
+                  {col.render
+                    ? col.render(row)
+                    : String((row as Record<string, unknown>)[col.id] ?? '')}
                 </TableCell>
               ))}
               {actions && <TableCell>{actions(row)}</TableCell>}
