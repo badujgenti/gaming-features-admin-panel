@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, IconButton, ToggleButton, ToggleButtonGroup, Box } from '@mui/material'
 import { Add, Visibility, Edit, Delete } from '@mui/icons-material'
@@ -8,6 +8,8 @@ import type { Column, SortDirection } from '@shared/types/table'
 import { useWheels, useDeleteWheel } from '../api/wheel.queries'
 import { WHEEL_ROUTES } from '../constants/routes'
 import type { Wheel, WheelStatus } from '../types/wheel.types'
+import { useQueryClient } from '@tanstack/react-query'
+import { WHEEL_QUERY_KEYS } from '../constants/queryKeys'
 
 const columns: Column<Wheel>[] = [
   { id: 'name', label: 'Name', sortable: true },
@@ -55,6 +57,33 @@ export function WheelListPage() {
       setSortDirection('asc')
     }
   }
+
+  const queryClient = useQueryClient()
+
+  const handleReorder = useCallback(
+    (activeId: string, overId: string) => {
+      const wheels = data?.data ?? []
+      const oldIndex = wheels.findIndex((w) => w.id === activeId)
+      const newIndex = wheels.findIndex((w) => w.id === overId)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reordered = [...wheels]
+      const [moved] = reordered.splice(oldIndex, 1)
+      reordered.splice(newIndex, 0, moved)
+
+      queryClient.setQueryData(
+        WHEEL_QUERY_KEYS.list({
+          _page: page + 1,
+          _limit: rowsPerPage,
+          _sort: sortBy,
+          _order: sortDirection,
+          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+        }),
+        { data: reordered, total: data?.total ?? 0 },
+      )
+    },
+    [data, page, rowsPerPage, sortBy, sortDirection, statusFilter, queryClient],
+  )
 
   const handleDelete = (id: string) => {
     openDialog(() => deleteMutation.mutate(id))
@@ -110,6 +139,8 @@ export function WheelListPage() {
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
         emptyStateMessage="No wheels found"
+        rowId={(row) => row.id}
+        onReorder={handleReorder}
         actions={(row) => (
           <>
             <IconButton
