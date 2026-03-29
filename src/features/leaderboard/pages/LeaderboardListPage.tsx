@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, IconButton, ToggleButton, ToggleButtonGroup, Box } from '@mui/material'
 import { Add, Visibility, Edit, Delete } from '@mui/icons-material'
@@ -7,7 +7,9 @@ import { useConfirmDialog } from '@shared/hooks'
 import type { Column, SortDirection } from '@shared/types/table'
 import { useLeaderboards, useDeleteLeaderboard } from '../api/leaderboard.queries'
 import { LEADERBOARD_ROUTES } from '../constants/routes'
+import { LEADERBOARD_QUERY_KEYS } from '../constants/queryKeys'
 import type { Leaderboard, LeaderboardStatus } from '../types/leaderboard.types'
+import { useQueryClient } from '@tanstack/react-query'
 
 const columns: Column<Leaderboard>[] = [
   { id: 'title', label: 'Title', sortable: true },
@@ -37,6 +39,7 @@ type StatusFilter = 'all' | LeaderboardStatus
 
 export function LeaderboardListPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [sortBy, setSortBy] = useState<string>('createdAt')
@@ -62,6 +65,31 @@ export function LeaderboardListPage() {
       setSortDirection('asc')
     }
   }
+
+  const handleReorder = useCallback(
+    (activeId: string, overId: string) => {
+      const items = data?.data ?? []
+      const oldIndex = items.findIndex((item) => item.id === activeId)
+      const newIndex = items.findIndex((item) => item.id === overId)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reordered = [...items]
+      const [moved] = reordered.splice(oldIndex, 1)
+      reordered.splice(newIndex, 0, moved)
+
+      queryClient.setQueryData(
+        LEADERBOARD_QUERY_KEYS.list({
+          _page: page + 1,
+          _limit: rowsPerPage,
+          _sort: sortBy,
+          _order: sortDirection,
+          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+        }),
+        { data: reordered, total: data?.total ?? 0 },
+      )
+    },
+    [data, page, rowsPerPage, sortBy, sortDirection, statusFilter, queryClient],
+  )
 
   const handleDelete = (id: string) => {
     openDialog(() => deleteMutation.mutate(id))
@@ -117,6 +145,8 @@ export function LeaderboardListPage() {
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
         emptyStateMessage="No leaderboards found"
+        rowId={(row) => row.id}
+        onReorder={handleReorder}
         actions={(row) => (
           <>
             <IconButton
