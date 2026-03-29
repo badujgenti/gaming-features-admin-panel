@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, IconButton, ToggleButton, ToggleButtonGroup, Box } from '@mui/material'
 import { Add, Visibility, Edit, Delete } from '@mui/icons-material'
@@ -7,7 +7,9 @@ import { useConfirmDialog } from '@shared/hooks'
 import type { Column, SortDirection } from '@shared/types/table'
 import { useRaffles, useDeleteRaffle } from '../api/raffle.queries'
 import { RAFFLE_ROUTES } from '../constants/routes'
+import { RAFFLE_QUERY_KEYS } from '../constants/queryKeys'
 import type { Raffle, RaffleStatus } from '../types/raffle.types'
+import { useQueryClient } from '@tanstack/react-query'
 
 const columns: Column<Raffle>[] = [
   { id: 'name', label: 'Name', sortable: true },
@@ -47,6 +49,7 @@ type StatusFilter = 'all' | RaffleStatus
 
 export function RaffleListPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [page, setPage] = useState(0)
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [sortBy, setSortBy] = useState<string>('createdAt')
@@ -72,6 +75,31 @@ export function RaffleListPage() {
       setSortDirection('asc')
     }
   }
+
+  const handleReorder = useCallback(
+    (activeId: string, overId: string) => {
+      const items = data?.data ?? []
+      const oldIndex = items.findIndex((item) => item.id === activeId)
+      const newIndex = items.findIndex((item) => item.id === overId)
+      if (oldIndex === -1 || newIndex === -1) return
+
+      const reordered = [...items]
+      const [moved] = reordered.splice(oldIndex, 1)
+      reordered.splice(newIndex, 0, moved)
+
+      queryClient.setQueryData(
+        RAFFLE_QUERY_KEYS.list({
+          _page: page + 1,
+          _limit: rowsPerPage,
+          _sort: sortBy,
+          _order: sortDirection,
+          ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+        }),
+        { data: reordered, total: data?.total ?? 0 },
+      )
+    },
+    [data, page, rowsPerPage, sortBy, sortDirection, statusFilter, queryClient],
+  )
 
   const handleDelete = (id: string) => {
     openDialog(() => deleteMutation.mutate(id))
@@ -128,6 +156,8 @@ export function RaffleListPage() {
         sortDirection={sortDirection}
         onSortChange={handleSortChange}
         emptyStateMessage="No raffles found"
+        rowId={(row) => row.id}
+        onReorder={handleReorder}
         actions={(row) => (
           <>
             <IconButton
