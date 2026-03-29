@@ -20,7 +20,7 @@ import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog } from '@shared/
 import { useConfirmDialog } from '@shared/hooks'
 import { useWheel, useDeleteWheel } from '../api/wheel.queries'
 import { WHEEL_ROUTES } from '../constants/routes'
-import { WheelPreview } from '../components/WheelPreview'
+import { AnimatedWheelPreview } from '../components/AnimatedWheelPreview'
 
 export function WheelDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -85,7 +85,7 @@ export function WheelDetailPage() {
       <Grid container spacing={3}>
         <Grid item xs={12} md={4}>
           <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
-            <WheelPreview segments={wheel.segments} size={300} />
+            <AnimatedWheelPreview segments={wheel.segments} size={300} />
           </Box>
         </Grid>
 
