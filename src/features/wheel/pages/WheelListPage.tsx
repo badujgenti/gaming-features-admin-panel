@@ -145,14 +145,14 @@ export function WheelListPage() {
           <>
             <IconButton
               size="small"
-              onClick={() => navigate(`/wheels/${row.id}`)}
+              onClick={() => navigate(WHEEL_ROUTES.DETAIL.replace(':id', row.id))}
               title="View"
             >
               <Visibility fontSize="small" />
             </IconButton>
             <IconButton
               size="small"
-              onClick={() => navigate(`/wheels/${row.id}/edit`)}
+              onClick={() => navigate(WHEEL_ROUTES.EDIT.replace(':id', row.id))}
               title="Edit"
             >
               <Edit fontSize="small" />

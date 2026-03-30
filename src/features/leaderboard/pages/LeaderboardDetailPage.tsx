@@ -16,15 +16,16 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, Edit, Delete } from '@mui/icons-material'
-import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog } from '@shared/components'
+import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog, QueryErrorState } from '@shared/components'
 import { useConfirmDialog } from '@shared/hooks'
+import { formatDate, formatDateTime } from '@shared/utils'
 import { useLeaderboard, useDeleteLeaderboard } from '../api/leaderboard.queries'
 import { LEADERBOARD_ROUTES } from '../constants/routes'
 
 export function LeaderboardDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: leaderboard, isLoading } = useLeaderboard(id!)
+  const { data: leaderboard, isLoading, isError, error, refetch } = useLeaderboard(id!)
   const deleteMutation = useDeleteLeaderboard()
   const { open, openDialog, closeDialog, confirm } = useConfirmDialog()
 
@@ -41,6 +42,15 @@ export function LeaderboardDetailPage() {
       <>
         <PageHeader title="Leaderboard Details" />
         <LoadingSkeleton rows={8} />
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Leaderboard Details" />
+        <QueryErrorState message={error?.message} onRetry={() => refetch()} />
       </>
     )
   }
@@ -65,7 +75,7 @@ export function LeaderboardDetailPage() {
             <Button
               variant="contained"
               startIcon={<Edit />}
-              onClick={() => navigate(`/leaderboards/${id}/edit`)}
+              onClick={() => navigate(LEADERBOARD_ROUTES.EDIT.replace(':id', id!))}
             >
               Edit
             </Button>
@@ -127,25 +137,25 @@ export function LeaderboardDetailPage() {
                   <Typography variant="body2" color="text.secondary">
                     Start Date
                   </Typography>
-                  <Typography>{new Date(leaderboard.startDate).toLocaleDateString()}</Typography>
+                  <Typography>{formatDate(leaderboard.startDate)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Typography variant="body2" color="text.secondary">
                     End Date
                   </Typography>
-                  <Typography>{new Date(leaderboard.endDate).toLocaleDateString()}</Typography>
+                  <Typography>{formatDate(leaderboard.endDate)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Typography variant="body2" color="text.secondary">
                     Created
                   </Typography>
-                  <Typography>{new Date(leaderboard.createdAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(leaderboard.createdAt)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Typography variant="body2" color="text.secondary">
                     Updated
                   </Typography>
-                  <Typography>{new Date(leaderboard.updatedAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(leaderboard.updatedAt)}</Typography>
                 </Grid>
               </Grid>
             </CardContent>

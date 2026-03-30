@@ -9,15 +9,16 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, Edit, Delete } from '@mui/icons-material'
-import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog } from '@shared/components'
+import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog, QueryErrorState } from '@shared/components'
 import { useConfirmDialog } from '@shared/hooks'
+import { formatDate, formatDateTime } from '@shared/utils'
 import { useRaffle, useDeleteRaffle } from '../api/raffle.queries'
 import { RAFFLE_ROUTES } from '../constants/routes'
 
 export function RaffleDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: raffle, isLoading } = useRaffle(id!)
+  const { data: raffle, isLoading, isError, error, refetch } = useRaffle(id!)
   const deleteMutation = useDeleteRaffle()
   const { open, openDialog, closeDialog, confirm } = useConfirmDialog()
 
@@ -34,6 +35,15 @@ export function RaffleDetailPage() {
       <>
         <PageHeader title="Raffle Details" />
         <LoadingSkeleton rows={8} />
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Raffle Details" />
+        <QueryErrorState message={error?.message} onRetry={() => refetch()} />
       </>
     )
   }
@@ -58,7 +68,7 @@ export function RaffleDetailPage() {
             <Button
               variant="contained"
               startIcon={<Edit />}
-              onClick={() => navigate(`/raffles/${id}/edit`)}
+              onClick={() => navigate(RAFFLE_ROUTES.EDIT.replace(':id', id!))}
             >
               Edit
             </Button>
@@ -122,19 +132,19 @@ export function RaffleDetailPage() {
                   <Typography variant="body2" color="text.secondary">
                     Start Date
                   </Typography>
-                  <Typography>{new Date(raffle.startDate).toLocaleDateString()}</Typography>
+                  <Typography>{formatDate(raffle.startDate)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     End Date
                   </Typography>
-                  <Typography>{new Date(raffle.endDate).toLocaleDateString()}</Typography>
+                  <Typography>{formatDate(raffle.endDate)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     Draw Date
                   </Typography>
-                  <Typography>{new Date(raffle.drawDate).toLocaleDateString()}</Typography>
+                  <Typography>{formatDate(raffle.drawDate)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={4}>
                   <Typography variant="body2" color="text.secondary">
@@ -148,13 +158,13 @@ export function RaffleDetailPage() {
                   <Typography variant="body2" color="text.secondary">
                     Created
                   </Typography>
-                  <Typography>{new Date(raffle.createdAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(raffle.createdAt)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={4}>
                   <Typography variant="body2" color="text.secondary">
                     Updated
                   </Typography>
-                  <Typography>{new Date(raffle.updatedAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(raffle.updatedAt)}</Typography>
                 </Grid>
               </Grid>
             </CardContent>

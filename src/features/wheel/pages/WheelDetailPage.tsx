@@ -16,8 +16,9 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, Edit, Delete } from '@mui/icons-material'
-import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog } from '@shared/components'
+import { PageHeader, StatusChip, LoadingSkeleton, ConfirmDialog, QueryErrorState } from '@shared/components'
 import { useConfirmDialog } from '@shared/hooks'
+import { formatDateTime } from '@shared/utils'
 import { useWheel, useDeleteWheel } from '../api/wheel.queries'
 import { WHEEL_ROUTES } from '../constants/routes'
 import { AnimatedWheelPreview } from '../components/AnimatedWheelPreview'
@@ -25,7 +26,7 @@ import { AnimatedWheelPreview } from '../components/AnimatedWheelPreview'
 export function WheelDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: wheel, isLoading } = useWheel(id!)
+  const { data: wheel, isLoading, isError, error, refetch } = useWheel(id!)
   const deleteMutation = useDeleteWheel()
   const { open, openDialog, closeDialog, confirm } = useConfirmDialog()
 
@@ -42,6 +43,15 @@ export function WheelDetailPage() {
       <>
         <PageHeader title="Wheel Details" />
         <LoadingSkeleton rows={8} />
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Wheel Details" />
+        <QueryErrorState message={error?.message} onRetry={() => refetch()} />
       </>
     )
   }
@@ -66,7 +76,7 @@ export function WheelDetailPage() {
             <Button
               variant="contained"
               startIcon={<Edit />}
-              onClick={() => navigate(`/wheels/${id}/edit`)}
+              onClick={() => navigate(WHEEL_ROUTES.EDIT.replace(':id', id!))}
             >
               Edit
             </Button>
@@ -170,13 +180,13 @@ export function WheelDetailPage() {
                   <Typography variant="body2" color="text.secondary">
                     Created
                   </Typography>
-                  <Typography>{new Date(wheel.createdAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(wheel.createdAt)}</Typography>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Typography variant="body2" color="text.secondary">
                     Updated
                   </Typography>
-                  <Typography>{new Date(wheel.updatedAt).toLocaleString()}</Typography>
+                  <Typography>{formatDateTime(wheel.updatedAt)}</Typography>
                 </Grid>
               </Grid>
             </CardContent>
