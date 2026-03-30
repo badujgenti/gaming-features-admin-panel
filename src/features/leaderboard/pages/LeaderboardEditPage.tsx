@@ -1,20 +1,22 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { Box, Typography } from '@mui/material'
-import { PageHeader, LoadingSkeleton } from '@shared/components'
+import { PageHeader, LoadingSkeleton, QueryErrorState } from '@shared/components'
+import { formatDateTime } from '@shared/utils'
 import { useLeaderboard, useUpdateLeaderboard } from '../api/leaderboard.queries'
+import { LEADERBOARD_ROUTES } from '../constants/routes'
 import { LeaderboardForm } from '../components/LeaderboardForm'
 import type { LeaderboardFormValues } from '../schemas/leaderboard.schema'
 
 export function LeaderboardEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: leaderboard, isLoading } = useLeaderboard(id!)
+  const { data: leaderboard, isLoading, isError, error, refetch } = useLeaderboard(id!)
   const updateMutation = useUpdateLeaderboard()
 
   const handleSubmit = (data: LeaderboardFormValues) => {
     updateMutation.mutate(
       { id: id!, data },
-      { onSuccess: () => navigate(`/leaderboards/${id}`) },
+      { onSuccess: () => navigate(LEADERBOARD_ROUTES.DETAIL.replace(':id', id!)) },
     )
   }
 
@@ -23,6 +25,15 @@ export function LeaderboardEditPage() {
       <>
         <PageHeader title="Edit Leaderboard" />
         <LoadingSkeleton rows={8} />
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Edit Leaderboard" />
+        <QueryErrorState message={error?.message} onRetry={() => refetch()} />
       </>
     )
   }
@@ -39,7 +50,7 @@ export function LeaderboardEditPage() {
           ID: {leaderboard.id}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Created: {new Date(leaderboard.createdAt).toLocaleString()}
+          Created: {formatDateTime(leaderboard.createdAt)}
         </Typography>
       </Box>
       <LeaderboardForm
