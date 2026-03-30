@@ -19,6 +19,10 @@ export function FormTextField<T extends FieldValues>({
         <TextField
           {...field}
           {...textFieldProps}
+          onChange={(e) => {
+            const value = e.target.value
+            field.onChange(textFieldProps.type === 'number' ? (value === '' ? '' : Number(value)) : value)
+          }}
           error={!!error}
           helperText={error?.message ?? textFieldProps.helperText}
           fullWidth
