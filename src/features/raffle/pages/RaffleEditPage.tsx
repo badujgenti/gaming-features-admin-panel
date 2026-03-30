@@ -1,20 +1,22 @@
 import { useNavigate, useParams } from 'react-router-dom'
 import { Box, Typography } from '@mui/material'
-import { PageHeader, LoadingSkeleton } from '@shared/components'
+import { PageHeader, LoadingSkeleton, QueryErrorState } from '@shared/components'
+import { formatDateTime } from '@shared/utils'
 import { useRaffle, useUpdateRaffle } from '../api/raffle.queries'
+import { RAFFLE_ROUTES } from '../constants/routes'
 import { RaffleForm } from '../components/RaffleForm'
 import type { RaffleFormValues } from '../schemas/raffle.schema'
 
 export function RaffleEditPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { data: raffle, isLoading } = useRaffle(id!)
+  const { data: raffle, isLoading, isError, error, refetch } = useRaffle(id!)
   const updateMutation = useUpdateRaffle()
 
   const handleSubmit = (data: RaffleFormValues) => {
     updateMutation.mutate(
       { id: id!, data },
-      { onSuccess: () => navigate(`/raffles/${id}`) },
+      { onSuccess: () => navigate(RAFFLE_ROUTES.DETAIL.replace(':id', id!)) },
     )
   }
 
@@ -23,6 +25,15 @@ export function RaffleEditPage() {
       <>
         <PageHeader title="Edit Raffle" />
         <LoadingSkeleton rows={8} />
+      </>
+    )
+  }
+
+  if (isError) {
+    return (
+      <>
+        <PageHeader title="Edit Raffle" />
+        <QueryErrorState message={error?.message} onRetry={() => refetch()} />
       </>
     )
   }
@@ -41,7 +52,7 @@ export function RaffleEditPage() {
           ID: {raffle.id}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Created: {new Date(raffle.createdAt).toLocaleString()}
+          Created: {formatDateTime(raffle.createdAt)}
         </Typography>
       </Box>
       <RaffleForm

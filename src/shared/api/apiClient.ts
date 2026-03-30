@@ -15,12 +15,21 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
-      axios.isAxiosError(error) && error.response?.data?.message
-        ? (error.response.data.message as string)
-        : error instanceof Error
-          ? error.message
-          : 'An unexpected error occurred'
+    let message = 'An unexpected error occurred'
+
+    if (axios.isAxiosError(error)) {
+      if (!error.response) {
+        message = 'Network error — please check your connection and try again'
+      } else if (error.response.data?.message) {
+        message = error.response.data.message as string
+      } else if (error.response.status === 404) {
+        message = 'The requested resource was not found'
+      } else if (error.response.status >= 500) {
+        message = 'Server error — please try again later'
+      }
+    } else if (error instanceof Error) {
+      message = error.message
+    }
 
     return Promise.reject(new Error(message))
   },

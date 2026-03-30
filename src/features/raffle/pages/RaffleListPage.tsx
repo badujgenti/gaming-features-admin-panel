@@ -9,6 +9,7 @@ import { useRaffles, useDeleteRaffle } from '../api/raffle.queries'
 import { RAFFLE_ROUTES } from '../constants/routes'
 import { RAFFLE_QUERY_KEYS } from '../constants/queryKeys'
 import type { Raffle, RaffleStatus } from '../types/raffle.types'
+import { formatDate } from '@shared/utils'
 import { useQueryClient } from '@tanstack/react-query'
 
 const columns: Column<Raffle>[] = [
@@ -23,19 +24,19 @@ const columns: Column<Raffle>[] = [
     id: 'startDate',
     label: 'Start Date',
     sortable: true,
-    render: (row) => new Date(row.startDate).toLocaleDateString(),
+    render: (row) => formatDate(row.startDate),
   },
   {
     id: 'endDate',
     label: 'End Date',
     sortable: true,
-    render: (row) => new Date(row.endDate).toLocaleDateString(),
+    render: (row) => formatDate(row.endDate),
   },
   {
     id: 'drawDate',
     label: 'Draw Date',
     sortable: true,
-    render: (row) => new Date(row.drawDate).toLocaleDateString(),
+    render: (row) => formatDate(row.drawDate),
   },
   {
     id: 'ticketPrice',
@@ -162,14 +163,14 @@ export function RaffleListPage() {
           <>
             <IconButton
               size="small"
-              onClick={() => navigate(`/raffles/${row.id}`)}
+              onClick={() => navigate(RAFFLE_ROUTES.DETAIL.replace(':id', row.id))}
               title="View"
             >
               <Visibility fontSize="small" />
             </IconButton>
             <IconButton
               size="small"
-              onClick={() => navigate(`/raffles/${row.id}/edit`)}
+              onClick={() => navigate(RAFFLE_ROUTES.EDIT.replace(':id', row.id))}
               title="Edit"
             >
               <Edit fontSize="small" />
