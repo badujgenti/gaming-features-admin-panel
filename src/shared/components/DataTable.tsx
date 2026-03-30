@@ -13,6 +13,23 @@ import {
   Typography,
   Box,
 } from '@mui/material'
+import { DragIndicator } from '@mui/icons-material'
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { Column, SortDirection } from '@shared/types/table'
 
 interface DataTableProps<T> {
@@ -29,9 +46,44 @@ interface DataTableProps<T> {
   onSortChange?: (columnId: string) => void
   emptyStateMessage?: string
   actions?: (row: T) => ReactNode
+  rowId?: (row: T) => string
+  onReorder?: (activeId: string, overId: string) => void
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+interface SortableRowProps<T> {
+  row: T
+  rowId: string
+  columns: Column<T>[]
+  actions?: (row: T) => ReactNode
+}
+
+function SortableRow<T extends object>({ row, rowId, columns, actions }: SortableRowProps<T>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: rowId,
+  })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <TableRow ref={setNodeRef} style={style} hover>
+      <TableCell sx={{ width: 40, cursor: 'grab', px: 1 }} {...attributes} {...listeners}>
+        <DragIndicator fontSize="small" sx={{ color: 'text.secondary' }} />
+      </TableCell>
+      {columns.map((col) => (
+        <TableCell key={col.id}>
+          {col.render ? col.render(row) : String((row as Record<string, unknown>)[col.id] ?? '')}
+        </TableCell>
+      ))}
+      {actions && <TableCell>{actions(row)}</TableCell>}
+    </TableRow>
+  )
+}
+
+export function DataTable<T extends object>({
   columns,
   data,
   loading,
@@ -45,10 +97,30 @@ export function DataTable<T extends Record<string, unknown>>({
   onSortChange,
   emptyStateMessage = 'No data available',
   actions,
+  rowId,
+  onReorder,
 }: DataTableProps<T>) {
+  const draggable = !!rowId && !!onReorder
+
   const allColumns = actions
     ? [...columns, { id: '_actions', label: 'Actions', sortable: false } as Column<T>]
     : columns
+
+  const headerColumns = draggable
+    ? [{ id: '_drag', label: '', sortable: false } as Column<T>, ...allColumns]
+    : allColumns
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+    if (over && active.id !== over.id && onReorder) {
+      onReorder(String(active.id), String(over.id))
+    }
+  }
 
   if (loading) {
     return (
@@ -56,7 +128,7 @@ export function DataTable<T extends Record<string, unknown>>({
         <Table>
           <TableHead>
             <TableRow>
-              {allColumns.map((col) => (
+              {headerColumns.map((col) => (
                 <TableCell key={col.id}>{col.label}</TableCell>
               ))}
             </TableRow>
@@ -64,7 +136,7 @@ export function DataTable<T extends Record<string, unknown>>({
           <TableBody>
             {Array.from({ length: 5 }).map((_, rowIndex) => (
               <TableRow key={rowIndex}>
-                {allColumns.map((col) => (
+                {headerColumns.map((col) => (
                   <TableCell key={col.id}>
                     <Skeleton variant="text" />
                   </TableCell>
@@ -87,11 +159,48 @@ export function DataTable<T extends Record<string, unknown>>({
     )
   }
 
+  const tableBody = draggable ? (
+    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <SortableContext
+        items={data.map((row) => rowId(row))}
+        strategy={verticalListSortingStrategy}
+      >
+        <TableBody>
+          {data.map((row) => (
+            <SortableRow
+              key={rowId(row)}
+              row={row}
+              rowId={rowId(row)}
+              columns={columns}
+              actions={actions}
+            />
+          ))}
+        </TableBody>
+      </SortableContext>
+    </DndContext>
+  ) : (
+    <TableBody>
+      {data.map((row, rowIndex) => (
+        <TableRow key={rowIndex} hover>
+          {columns.map((col) => (
+            <TableCell key={col.id}>
+              {col.render
+                ? col.render(row)
+                : String((row as Record<string, unknown>)[col.id] ?? '')}
+            </TableCell>
+          ))}
+          {actions && <TableCell>{actions(row)}</TableCell>}
+        </TableRow>
+      ))}
+    </TableBody>
+  )
+
   return (
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
           <TableRow>
+            {draggable && <TableCell width={40} />}
             {allColumns.map((col) => (
               <TableCell key={col.id}>
                 {col.sortable && onSortChange ? (
@@ -109,18 +218,7 @@ export function DataTable<T extends Record<string, unknown>>({
             ))}
           </TableRow>
         </TableHead>
-        <TableBody>
-          {data.map((row, rowIndex) => (
-            <TableRow key={rowIndex} hover>
-              {columns.map((col) => (
-                <TableCell key={col.id}>
-                  {col.render ? col.render(row) : String(row[col.id] ?? '')}
-                </TableCell>
-              ))}
-              {actions && <TableCell>{actions(row)}</TableCell>}
-            </TableRow>
-          ))}
-        </TableBody>
+        {tableBody}
       </Table>
       <TablePagination
         component="div"
