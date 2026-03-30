@@ -19,8 +19,10 @@ export function FormDatePicker<T extends FieldValues>({
       render={({ field, fieldState: { error } }) => (
         <DatePicker
           label={label}
-          value={field.value ?? null}
-          onChange={(date) => field.onChange(date)}
+          value={field.value ? new Date(field.value) : null}
+          onChange={(date: Date | null) =>
+            field.onChange(date ? date.toISOString() : '')
+          }
           slotProps={{
             textField: {
               fullWidth: true,

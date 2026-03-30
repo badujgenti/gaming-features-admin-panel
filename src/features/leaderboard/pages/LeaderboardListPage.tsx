@@ -9,6 +9,7 @@ import { useLeaderboards, useDeleteLeaderboard } from '../api/leaderboard.querie
 import { LEADERBOARD_ROUTES } from '../constants/routes'
 import { LEADERBOARD_QUERY_KEYS } from '../constants/queryKeys'
 import type { Leaderboard, LeaderboardStatus } from '../types/leaderboard.types'
+import { formatDate } from '@shared/utils'
 import { useQueryClient } from '@tanstack/react-query'
 
 const columns: Column<Leaderboard>[] = [
@@ -24,13 +25,13 @@ const columns: Column<Leaderboard>[] = [
     id: 'startDate',
     label: 'Start Date',
     sortable: true,
-    render: (row) => new Date(row.startDate).toLocaleDateString(),
+    render: (row) => formatDate(row.startDate),
   },
   {
     id: 'endDate',
     label: 'End Date',
     sortable: true,
-    render: (row) => new Date(row.endDate).toLocaleDateString(),
+    render: (row) => formatDate(row.endDate),
   },
   { id: 'maxParticipants', label: 'Max Players', sortable: true },
 ]
@@ -151,14 +152,14 @@ export function LeaderboardListPage() {
           <>
             <IconButton
               size="small"
-              onClick={() => navigate(`/leaderboards/${row.id}`)}
+              onClick={() => navigate(LEADERBOARD_ROUTES.DETAIL.replace(':id', row.id))}
               title="View"
             >
               <Visibility fontSize="small" />
             </IconButton>
             <IconButton
               size="small"
-              onClick={() => navigate(`/leaderboards/${row.id}/edit`)}
+              onClick={() => navigate(LEADERBOARD_ROUTES.EDIT.replace(':id', row.id))}
               title="Edit"
             >
               <Edit fontSize="small" />
